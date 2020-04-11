@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+  <mapper namespace="org.zerock.mapper.BoardMapper">
+  
+  <sql id="criteria">
+  	<trim prefix="(" suffix=") AND " prefixOverrides="OR">
+  			<foreach item='type' collection="typeArr">
+  				<trim prefix="OR">
+  					<choose>
+  						<when test="type == 'T'.toString()">
+  							title like '%'||#{keyword}||'%'
+  						</when>
+  						<when test="type == 'C'.toString()">
+  							content like '%'||#{keyword}||'%'
+  						</when>
+  						<when test="type == 'W'.toString()">
+  							writer like '%'||#{keyword}||'%'
+  						</when>
+  					</choose>
+  				</trim>
+  			</foreach>
+  		</trim>
+  </sql>
+  
+  	<insert id="insert">
+  		insert into tb1_board(bno, title, content, writer) values(#{bno}, #{title}, #{content}, #{writer})
+  	</insert>
+ 
+  	<insert id="insertSelectKey">
+  		<selectKey keyProperty="bno" order="BEFORE" resultType="long">
+  		 select tb1_board_seq.nextval from dual
+  		</selectKey>
+  		 insert into tb1_board(bno, title, content, writer) values(#{bno}, #{title}, #{content}, #{writer})
+  	</insert>
+  	
+  
+  	<select id="getList" resultType="org.zerock.domain.BoardVO">
+  		select * from tb1_board  
+  	</select>
+  	
+  	<select id="get" resultType="org.zerock.domain.BoardVO">
+  		select * from tb1_board where bno=#{bno}
+  	</select>
+  	
+  	<select id="getCount" resultType="int">
+  		select count(*) from tb1_board
+  		where
+  		<include refid="criteria"></include>
+  		bno>0
+  	</select>
+  	
+  	<update id="modify" parameterType="org.zerock.domain.BoardVO">
+  		update tb1_board set title=#{title}, content=#{content} where bno=#{bno}  
+  	</update>
+  	<delete id="delete">
+  		delete from tb1_board where bno=#{bno}
+  	</delete>
+  	
+  	<select id="getListWithPaging" resultType="org.zerock.domain.BoardVO">
+  		<![CDATA[
+  			select 
+  				bno, title, content, writer, regdate, updatedate, replycnt
+  				from
+  				(
+  				select /*+INDEX_DESC(tb1_board TB1_BOARD_PK) */ 
+  				rownum rn, bno, title, content, writer, regdate, updatedate, replycnt
+  				from 
+  					tb1_board 
+  				where 
+  		]]>
+  			<include refid="criteria"></include>
+  		<![CDATA[
+  			rownum <= #{pageNum} * #{amount}
+  			)
+  		where rn > (#{pageNum} -1) * #{amount}
+  		]]>
+  	</select>
+  	
+  	<update id="updateReplyCnt">
+  		update tb1_board set replycnt = replycnt + #{amount} where bno = #{bno}
+  	</update>
+  </mapper>
